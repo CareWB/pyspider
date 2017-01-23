@@ -27,6 +27,25 @@ def getPageContent(url):
     except Exception as e:
         print(e)
         return getPageContent(url)
+        
+def get_mp3_url(content):
+    title = ''
+    url = ''
+    pattern = re.compile('''<title>(.*)</title>''',re.I)
+    ma = pattern.search(content)
+    if ma is not None:
+        res = ma.groups()
+        if len(res[0]) > 0:
+            title = res[0]
+                
+    pattern = re.compile('''<div id="audio_url" data-src="(.*)" style="display''',re.I)
+    ma = pattern.search(content)
+    if ma is not None:
+        res = ma.groups()
+        if len(res[0]) > 0:
+            url = res[0]
+        
+    return title, url.replace('&amp;', '&')
 
 def download(url, name):
     urllib.request.urlretrieve(url, name+'.mp3')  
