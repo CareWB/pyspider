@@ -9,7 +9,7 @@ import io
 import http.cookiejar  
 
 web_url="http://cmtv.cm/"
-url_fmt= web_url + "forum-57-%d.html"
+url_fmt= web_url + "forum-50-%d.html"
 
 
 
@@ -24,8 +24,13 @@ def analysisOnePage(url):
         url= getInfosFromTopic(topic)
         thread_content = getPageContent(url)
         url_pre, name = get_mp3_url(thread_content)
-        #print(url_pre)
-        download(url_pre, name)
+        if url_pre != "":
+            if not os.path.exists(name):
+                download(url_pre, name)
+            else:
+                print("file already exist:" + name)
+        else:
+            print("can NOT find mp3 file in:" + url)
 
 def getPageContent(url):
     try:
@@ -83,11 +88,10 @@ def login(hosturl, posturl):
     h = urllib.request.urlopen(hosturl)  
     postData = urllib.parse.urlencode(postData).encode('utf-8')  
   
-    #通过urllib2提供的request方法来向指定Url发送我们构造的数据，并完成登录过程  
     request = urllib.request.Request(posturl, postData, headers)  
     response = urllib.request.urlopen(request)  
     text = response.read()  
-    print(text)  
+    #print(text)  
 
 def download(url_pre, name):
     urllib.request.urlretrieve('http://' + urllib.parse.quote(url_pre+'/'+name), name)  
@@ -95,8 +99,12 @@ def download(url_pre, name):
 def get_mp3_url(content):
     #print(content)
     pattern = re.compile('''mp3: "http://(.*)/(.*.mp3)"''',re.I)
-    res = pattern.search(content).groups()
-    return res[0], res[1]
+    ma = pattern.search(content)
+    if ma is not None:
+        res = ma.groups()
+        return res[0], res[1]
+    else:
+        return "", ""
     
 
 if __name__ == '__main__':
@@ -105,7 +113,4 @@ if __name__ == '__main__':
     posturl = web_url + 'member.php?mod=logging&action=login&loginsubmit=yes&infloat=yes&lssubmit=yes&inajax=1'
     login(hosturl, posturl)
     
-    [analysisOnePage(url_fmt % i) for i in range(7,8)]
-    
-    #analysisOnePage('http://www.jieduclub.com/thread-2421-1-1.html')
-    #file.close()
+    [analysisOnePage(url_fmt % i) for i in range(1,2)]
