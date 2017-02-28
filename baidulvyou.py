@@ -42,8 +42,30 @@ def get_page_content(url):
         time.sleep(1)
         return page_content(url)
 
+def getpos(hosturl, posturl):
+    headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',  
+           'Referer' : 'http://www.mafengwo.cn/jd/10132/gonglve.html'}  
+    postData = {'sAct' : 'KMdd_StructWebAjax|GetPoisByTag',  
+            'iMddid':'10132',
+            'iTagId' : '0',
+            'iPage' : '1',
+            }  
+    cj = http.cookiejar.LWPCookieJar()  
+    cookie_support = urllib.request.HTTPCookieProcessor(cj)  
+    opener = urllib.request.build_opener(cookie_support, urllib.request.HTTPHandler)  
+    urllib.request.install_opener(opener)  
+    h = urllib.request.urlopen(hosturl)  
+    postData = urllib.parse.urlencode(postData).encode('utf-8')  
+  
+    request = urllib.request.Request(posturl, postData, headers)  
+    response = urllib.request.urlopen(request)  
+    text = response.read()  
+    file.write(text.decode("unicode_escape").encode())
+    #print(text)  
+
 if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='gb18030') 
     file = open(log, 'wb')
-    get_all_plan(get_city_page('xiamen'))
+    #get_all_plan(get_city_page('xiamen'))
+    getpos('http://www.mafengwo.cn','http://www.mafengwo.cn/ajax/router.php')
     file.close()
