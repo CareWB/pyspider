@@ -8,8 +8,8 @@ import os
 import io
 import http.cookiejar  
 
-site_url="https://lvyou.baidu.com/"
-log = os.path.split(os.path.realpath(sys.argv[0]))[0] + '\\baidulvyou.txt'
+site_url="http://www.mafengwo.cn/"
+log = os.path.split(os.path.realpath(sys.argv[0]))[0] + os.sep + 'baidulvyou.txt'
 
 file = None
 
@@ -42,13 +42,13 @@ def get_page_content(url):
         time.sleep(1)
         return page_content(url)
 
-def getpos(hosturl, posturl):
+def get_one_page_scenics(hosturl, posturl, i):
     headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',  
            'Referer' : 'http://www.mafengwo.cn/jd/10132/gonglve.html'}  
     postData = {'sAct' : 'KMdd_StructWebAjax|GetPoisByTag',  
             'iMddid':'10132',
             'iTagId' : '0',
-            'iPage' : '1',
+            'iPage' : str(i),
             }  
     cj = http.cookiejar.LWPCookieJar()  
     cookie_support = urllib.request.HTTPCookieProcessor(cj)  
@@ -58,14 +58,18 @@ def getpos(hosturl, posturl):
     postData = urllib.parse.urlencode(postData).encode('utf-8')  
   
     request = urllib.request.Request(posturl, postData, headers)  
-    response = urllib.request.urlopen(request)  
-    text = response.read()  
-    file.write(text.decode("unicode_escape").encode())
-    #print(text)  
+    response = urllib.request.urlopen(request)
+    pattern = re.compile('''<a href=".*poi.*/(.*)" target="_blank" title="(.*)">''',re.M)
+    return re.findall(pattern, response.read().decode("unicode_escape"))
+    #file.write(text.decode("unicode_escape").encode())
+    #print(text.decode("unicode_escape"))
 
 if __name__ == '__main__':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='gb18030') 
+    #sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='gb18030') 
     file = open(log, 'wb')
     #get_all_plan(get_city_page('xiamen'))
-    getpos('http://www.mafengwo.cn','http://www.mafengwo.cn/ajax/router.php')
+    all = get_one_page_scenics('http://www.mafengwo.cn','http://www.mafengwo.cn/ajax/router.php', 1)
+    print(all[0][1])
+    content = get_page_content(site_url + 'poi/' + all[0][0])
+    file.write(content.encode())
     file.close()
