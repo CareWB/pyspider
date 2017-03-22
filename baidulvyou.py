@@ -13,11 +13,13 @@ import pymysql
 web_site = "http://lvyou.baidu.com/"
 web_url = web_site + "destination/ajax/jingdian?format=ajax&cid=0&playid=0&seasonid=5&surl="
 url_fmt = web_url + "%s&pn=%d&rn=%d"
+hotel_fmt = "http://hotels.ctrip.com/hotel/%s&p%d"
 log = os.path.split(os.path.realpath(sys.argv[0]))[
     0] + os.sep + 'baidulvyou.txt'
 
 file = None
 hotels = {}
+scenics = {}
 
 
 def get_page_content(url):
@@ -30,11 +32,10 @@ def get_page_content(url):
     except Exception as e:
         print(e)
         time.sleep(1)
-        return page_content(url)
+        return get_page_content(url)
 
 
 def get_scenics_info(url):
-    scenics = {}
     jsonData = json.loads(get_page_content(url), strict=False)
     for data in jsonData["data"]["scene_list"]:
         info = {}
@@ -43,6 +44,7 @@ def get_scenics_info(url):
             price = data['ticket']['price']
 
         info['name'] = str(data['sname'])
+        info['id'] = str(data['cid'])
         info['lng'], info['lat'] = str(data['ext']['map_info']).split(',', 1)
         info['score'] = str(data['ext']['avg_remark_score'])
         info['price'] = str(price)
@@ -55,10 +57,23 @@ def get_scenics_info(url):
     for k, v in scenics.items():
         get_scenic_detail(v)
 
-    return scenics
-
-
 def get_scenic_detail(scenic):
+    type_found = False
+    time_fonud = False
+    content = get_page_content(web_site + scenic['surl'])
+    lines = io.StringIO(content).readlines()
+    for line in lines:
+        if line.find('景点类型：') > 0:
+            amount_found = True
+            scenic['type'] = line[line.find('：') + 1:].strip()
+        elif line.find('建议游玩：') > 0:
+            amount_found = True
+            scenic['play_time'] = line[line.find('：') + 1: line.find('&lt;') + 1].strip()
+    
+        if type_found and time_fonud:
+            break
+
+def get_scenic_detailsss(scenic):
     content = get_page_content(web_site + scenic['surl'])
 
     pattern = re.compile('''景点类型：(.*)''', re.I)
@@ -101,6 +116,7 @@ def get_hotels_json_data(content_lines):
 
 
 def get_one_page_hotels(page_url):
+    print(page_url)
     content = get_page_content(page_url)
     lines = io.StringIO(content).readlines()
     amount_json, detail_json = get_hotels_json_data(lines)
@@ -120,13 +136,11 @@ def get_one_page_hotels(page_url):
             hotels[data['id']]['address'] = data['address']
             hotels[data['id']]['score'] = data['score']
 
-    insert_into_database(hotels)
-
-
-def insert_into_database(hotels):
+def insert_into_database():
     conn = pymysql.connect(host='', port=3306, user='',
                            passwd='', db='', use_unicode=True, charset="utf8")
     cursor = conn.cursor()
+
     sql = """DELETE FROM IMHotel"""
     try:
         cursor.execute(sql)
@@ -149,6 +163,34 @@ def insert_into_database(hotels):
         print(e)
         conn.rollback()
 
+    sql = """DELETE FROM IMScenic"""
+    try:
+        cursor.execute(sql)
+        conn.commit()
+    except:
+        conn.rollback()
+
+    sql = 'INSERT INTO `IMScenic` VALUES '
+    i = 1
+    for k, v in scenics.items():
+        if 'type' not in v:
+            v['type'] = '其他'
+            print(v)
+        sql += """({id},'{city}','{name}',{score},'{tags}',{free},{must},'{url}','{class_}',{playTime},{price},'{bestFrom}','{bestTo}','{lng}','{lat}','{address}','{desc}',0),""".format(
+            id=i, city='XMN', name=v['name'], score=v['score'], tags=v['type'], 
+            free=0, must=1, url=v['surl'], class_=1, playTime=3, 
+            price=v['price'], bestFrom='09:00', bestTo='17:00', lng=v['lng'], lat=v['lat'],
+            address=v['address'], desc=v['desc'])
+        i += 1
+    sql = sql[:-1] + ';'
+    print(sql)
+    try:
+        cursor.execute(sql)
+        conn.commit()
+    except Exception as e:
+        print(e)
+        conn.rollback()
+
     cursor.close()
     conn.close()
 
@@ -161,8 +203,8 @@ def write_to_file(content):
 if __name__ == '__main__':
     #sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='gb18030')
     file = open(log, 'wb')
-    #[write_to_file(get_scenics_info(url_fmt % ('xiamen', i, 30)))
-    # for i in range(1, 3)]
+    [get_scenics_info(url_fmt % ('xiamen', i, 30)) for i in range(1, 5)]
+    [get_one_page_hotels(hotel_fmt % ('xiamen25', i)) for i in range(1, 5)]
 
-    get_one_page_hotels('http://hotels.ctrip.com/hotel/xiamen25&p1')
+    insert_into_database()
     file.close()
