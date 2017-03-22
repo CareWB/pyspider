@@ -24,7 +24,7 @@ scenics = {}
 
 def get_page_content(url):
     try:
-        wp = urllib.request.urlopen(url)
+        wp = urllib.request.urlopen(url, timeout=5)
         all = wp.read()
         content = str(all.decode("utf8"))
         time.sleep(1)
@@ -35,7 +35,7 @@ def get_page_content(url):
         return get_page_content(url)
 
 
-def get_scenics_info(url):
+def get_scenics_info(city, url):
     jsonData = json.loads(get_page_content(url), strict=False)
     for data in jsonData["data"]["scene_list"]:
         info = {}
@@ -44,6 +44,7 @@ def get_scenics_info(url):
             price = data['ticket']['price']
 
         info['name'] = str(data['sname'])
+        info['city'] = city
         info['id'] = str(data['cid'])
         info['lng'], info['lat'] = str(data['ext']['map_info']).split(',', 1)
         info['score'] = str(data['ext']['avg_remark_score'])
@@ -53,9 +54,6 @@ def get_scenics_info(url):
         info['surl'] = str(data['surl'])
 
         scenics[info['name']] = info
-
-    for k, v in scenics.items():
-        get_scenic_detail(v)
 
 def get_scenic_detail(scenic):
     type_found = False
@@ -72,24 +70,6 @@ def get_scenic_detail(scenic):
     
         if type_found and time_fonud:
             break
-
-def get_scenic_detailsss(scenic):
-    content = get_page_content(web_site + scenic['surl'])
-
-    pattern = re.compile('''景点类型：(.*)''', re.I)
-    ma = pattern.search(content)
-    if ma is not None:
-        res = ma.groups()
-        scenic['type'] = res[0]
-
-    pattern = re.compile('''建议游玩：(.*)''', re.I)
-    ma = pattern.search(content)
-    if ma is not None:
-        res = ma.groups()
-        scenic['play_time'] = res[0]
-
-    return scenic
-
 
 def get_hotels_json_data(content_lines):
     amount_json = None
@@ -115,7 +95,7 @@ def get_hotels_json_data(content_lines):
     return amount_json, detail_json
 
 
-def get_one_page_hotels(page_url):
+def get_one_page_hotels(city, page_url):
     print(page_url)
     content = get_page_content(page_url)
     lines = io.StringIO(content).readlines()
@@ -125,6 +105,7 @@ def get_one_page_hotels(page_url):
         for data in amount_json['data']:
             hotels[data['hotelid']] = {}
             hotels[data['hotelid']]['id'] = data['hotelid']
+            hotels[data['hotelid']]['city'] = city
             hotels[data['hotelid']]['amount'] = data['amount']
 
     if detail_json is not None:
@@ -203,8 +184,17 @@ def write_to_file(content):
 if __name__ == '__main__':
     #sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='gb18030')
     file = open(log, 'wb')
-    [get_scenics_info(url_fmt % ('xiamen', i, 30)) for i in range(1, 5)]
-    [get_one_page_hotels(hotel_fmt % ('xiamen25', i)) for i in range(1, 5)]
 
+    get_scenics_info('XMN', url_fmt % ('xiamen', 1, 60))
+    get_scenics_info('SZX', url_fmt % ('shenzhen', 1, 60))
+    get_scenics_info('CAN', url_fmt % ('guangzhou', 1, 60))
+    for k, v in scenics.items():
+        get_scenic_detail(v)
+
+    [get_one_page_hotels('XMN', hotel_fmt % ('xiamen25', i)) for i in range(1, 5)]
+    [get_one_page_hotels('SZX', hotel_fmt % ('shenzhen30', i)) for i in range(1, 5)]
+    [get_one_page_hotels('CAN', hotel_fmt % ('guangzhou32', i)) for i in range(1, 5)]
+    
     insert_into_database()
+    
     file.close()
