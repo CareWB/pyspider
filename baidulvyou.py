@@ -24,6 +24,7 @@ scenics = {}
 
 def get_page_content(url):
     try:
+        print(url)
         wp = urllib.request.urlopen(url, timeout=5)
         all = wp.read()
         content = str(all.decode("utf8"))
@@ -52,6 +53,7 @@ def get_scenics_info(city, url):
         info['address'] = str(data['ext']['address'])
         info['desc'] = str(data['ext']['abs_desc'])
         info['surl'] = str(data['surl'])
+        info['image'] = str(data['cover']['full_url'])
 
         scenics[info['name']] = info
 
@@ -116,6 +118,7 @@ def get_one_page_hotels(city, page_url):
             hotels[data['id']]['url'] = data['url']
             hotels[data['id']]['address'] = data['address']
             hotels[data['id']]['score'] = data['score']
+            hotels[data['id']]['image'] = data['img']
 
 def insert_into_database():
     conn = pymysql.connect(host='', port=3306, user='',
@@ -132,9 +135,9 @@ def insert_into_database():
     sql = 'INSERT INTO `IMHotel` VALUES '
 
     for k, v in hotels.items():
-        sql += """({id},'{city}','{name}',{score},'{tags}',{must},'{url}','{class_}',{price},{distance},0,'{lng}','{lat}'),""".format(
+        sql += """({id},'{city}','{name}',{score},'{tags}',{must},'{url}','{class_}',{price},{distance},0,'{lng}','{lat}','{image}'),""".format(
             id=k, city='XMN', name=v['name'], score=v['score'], tags='经济型', must=1, url=v['url'],
-            class_=1, price=v['amount'], distance=100, lng=v['lon'], lat=v['lat'])
+            class_=1, price=v['amount'], distance=100, lng=v['lon'], lat=v['lat'], image=v['image'])
     sql = sql[:-1] + ';'
     print(sql)
     try:
@@ -157,14 +160,14 @@ def insert_into_database():
         if 'type' not in v:
             v['type'] = '其他'
             print(v)
-        sql += """({id},'{city}','{name}',{score},'{tags}',{free},{must},'{url}','{class_}',{playTime},{price},'{bestFrom}','{bestTo}','{lng}','{lat}','{address}','{desc}',0),""".format(
+        sql += """({id},'{city}','{name}',{score},'{tags}',{free},{must},'{url}','{class_}',{playTime},{price},'{bestFrom}','{bestTo}','{lng}','{lat}','{address}','{desc}',0,'{image}'),""".format(
             id=i, city='XMN', name=v['name'], score=v['score'], tags=v['type'], 
             free=0, must=1, url=v['surl'], class_=1, playTime=3, 
             price=v['price'], bestFrom='09:00', bestTo='17:00', lng=v['lng'], lat=v['lat'],
-            address=v['address'], desc=v['desc'])
+            address=v['address'], desc=v['desc'], image=v['image'])
         i += 1
     sql = sql[:-1] + ';'
-    print(sql)
+    #print(sql)
     try:
         cursor.execute(sql)
         conn.commit()
