@@ -136,7 +136,7 @@ def insert_into_database():
 
     for k, v in hotels.items():
         sql += """({id},'{city}','{name}',{score},'{tags}',{must},'{url}','{class_}',{price},{distance},0,'{lng}','{lat}','{image}'),""".format(
-            id=k, city='XMN', name=v['name'], score=v['score'], tags='经济型', must=1, url=v['url'],
+            id=k, city=v['city'], name=v['name'], score=v['score'], tags='经济型', must=1, url=v['url'],
             class_=1, price=v['amount'], distance=100, lng=v['lon'], lat=v['lat'], image=v['image'])
     sql = sql[:-1] + ';'
     print(sql)
@@ -161,7 +161,7 @@ def insert_into_database():
             v['type'] = '其他'
             print(v)
         sql += """({id},'{city}','{name}',{score},'{tags}',{free},{must},'{url}','{class_}',{playTime},{price},'{bestFrom}','{bestTo}','{lng}','{lat}','{address}','{desc}',0,'{image}'),""".format(
-            id=i, city='XMN', name=v['name'], score=v['score'], tags=v['type'], 
+            id=i, city=v['city'], name=v['name'], score=v['score'], tags=v['type'], 
             free=0, must=1, url=v['surl'], class_=1, playTime=3, 
             price=v['price'], bestFrom='09:00', bestTo='17:00', lng=v['lng'], lat=v['lat'],
             address=v['address'], desc=v['desc'], image=v['image'])
